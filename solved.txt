@@ -1,0 +1,40 @@
+Скачал образ 
+  docker pull yandex/clickhouse-server
+
+Запустил:
+	docker run -d --name clickhouse-server -p 9000:9000 --ulimit nofile=262144:262144 yandex/clickhouse-server
+
+Посмотрел все контейнеры
+	docker ps -a
+  
+Зашел в контейнер
+  docker exec -it f840838b30a7 /bin/bash
+  
+Запустил клиент клик-хауса
+
+
+Создал базу homework:
+	CREATE DATABASE homework
+
+Создал таблицу metrika:
+	CREATE TABLE homework.metrika ("EventDate" Date, "CounterID" UInt32, "UserID" UInt64, "RegionID" UInt32) ENGINE = MergeTree() PARTITION BY toYYYYMM(EventDate) ORDER BY (CounterID, EventDate, intHash32(UserID))
+
+Скопировал файл в docker
+	docker cp metrika_sample.tsv f840838b30a7:/
+
+Залил данные в таблицу
+	cat metrika_sample.tsv | clickhouse-client --database homework --query "INSERT INTO metrika FORMAT TSV"
+
+Проверил таблицу на наличие записей:
+select * from homework.metrika limit 10
+
+Домашнее задание:
+
+select UserID, count(1) -- с 1 просто быстрее работает
+from homework.metrika -- откуда селектим
+group by UserID -- столбец по которому групируем
+order by count(1) -- сортировка по счетчику
+desc limit 1 -- 1я запись в порядке уменьшения
+
+Ответ: 
+  Пользователь 1313448155240738815 просмотрел больше всего страниц
